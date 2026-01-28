@@ -7,6 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+// Context
+import { AppProvider } from './src/context/AppContext';
+
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
 import PracticesScreen from './src/screens/PracticesScreen';
@@ -15,6 +18,12 @@ import ProgramScreen from './src/screens/ProgramScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import PlayerScreen from './src/screens/PlayerScreen';
+import StatisticsScreen from './src/screens/StatisticsScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import JournalScreen from './src/screens/JournalScreen';
+import JournalHistoryScreen from './src/screens/JournalHistoryScreen';
+import AchievementsScreen from './src/screens/AchievementsScreen';
+import MeditationSetupScreen from './src/screens/MeditationSetupScreen';
 
 // Theme
 const DarkTheme = {
@@ -78,41 +87,91 @@ function TabNavigator() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer theme={DarkTheme}>
-        <StatusBar style="light" />
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#0a0a0f' },
-          }}
-        >
-          <Stack.Screen name="Main" component={TabNavigator} />
-          <Stack.Screen 
-            name="PracticeDetail" 
-            component={PracticeDetailScreen}
-            options={{
-              presentation: 'card',
-              animation: 'slide_from_right',
+      <AppProvider>
+        <NavigationContainer theme={DarkTheme}>
+          <StatusBar style="light" />
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0a0a0f' },
             }}
-          />
-          <Stack.Screen 
-            name="Player" 
-            component={PlayerScreen}
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-            }}
-          />
-          <Stack.Screen 
-            name="Subscription" 
-            component={SubscriptionScreen}
-            options={{
-              presentation: 'modal',
-              animation: 'slide_from_bottom',
-            }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+          >
+            <Stack.Screen name="Main" component={TabNavigator} />
+            <Stack.Screen 
+              name="PracticeDetail" 
+              component={PracticeDetailScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen 
+              name="Player" 
+              component={PlayerScreen}
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen 
+              name="Subscription" 
+              component={SubscriptionScreen}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen 
+              name="Statistics" 
+              component={StatisticsScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen 
+              name="Settings" 
+              component={SettingsScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen 
+              name="Journal" 
+              component={JournalScreen}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen 
+              name="JournalHistory" 
+              component={JournalHistoryScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen 
+              name="Achievements" 
+              component={AchievementsScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen 
+              name="MeditationSetup" 
+              component={MeditationSetupScreen}
+              options={{
+                presentation: 'card',
+                animation: 'slide_from_right',
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </AppProvider>
     </GestureHandlerRootView>
   );
 }

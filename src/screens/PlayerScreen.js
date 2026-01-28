@@ -6,27 +6,45 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useApp } from '../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function PlayerScreen({ route, navigation }) {
-  const { practice } = route.params;
+  const { 
+    practice, 
+    duration = 600, 
+    backgroundSound = 'none',
+    intervalEnabled = false,
+    intervalMinutes = 5,
+  } = route.params;
   const insets = useSafeAreaInsets();
+  const { saveSession, newAchievements, clearNewAchievements } = useApp();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [totalDuration] = useState(600); // 10 minutes in seconds
+  const [totalDuration] = useState(duration);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [preparationPhase, setPreparationPhase] = useState(true);
+  const [preparationCountdown, setPreparationCountdown] = useState(3);
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const breathAnim = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
+  const preparationRef = useRef(null);
+  const intervalRef = useRef(null);
+  const sessionSaved = useRef(false);
+  const backgroundSoundRef = useRef(null);
+  const lastIntervalTime = useRef(0);
 
   useEffect(() => {
     // Breathing animation
@@ -81,17 +99,60 @@ export default function PlayerScreen({ route, navigation }) {
     return () => pulse.stop();
   }, [isPlaying]);
 
+  // Фаза подготовки
   useEffect(() => {
-    if (isPlaying) {
+    if (preparationPhase && preparationCountdown > 0) {
+      preparationRef.current = setTimeout(() => {
+        if (preparationCountdown > 1) {
+          setPreparationCountdown(preparationCountdown - 1);
+          if (Haptics) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+        } else {
+          setPreparationPhase(false);
+          setIsPlaying(true);
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (preparationRef.current) {
+        clearTimeout(preparationRef.current);
+      }
+    };
+  }, [preparationPhase, preparationCountdown]);
+
+  // Основной таймер
+  useEffect(() => {
+    if (isPlaying && !preparationPhase) {
       timerRef.current = setInterval(() => {
         setElapsedTime(prev => {
-          if (prev >= totalDuration) {
-            setIsPlaying(false);
-            clearInterval(timerRef.current);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            return prev;
+          const newTime = prev + 1;
+          
+          // Интервальные сигналы
+          if (intervalEnabled && intervalMinutes > 0) {
+            const minutesElapsed = Math.floor(newTime / 60);
+            const lastMinutes = Math.floor(lastIntervalTime.current / 60);
+            
+            if (minutesElapsed > lastMinutes && minutesElapsed % intervalMinutes === 0 && minutesElapsed > 0) {
+              lastIntervalTime.current = newTime;
+              if (Haptics) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              }
+            }
           }
-          return prev + 1;
+          
+          if (newTime >= totalDuration) {
+            setIsPlaying(false);
+            setIsCompleted(true);
+            clearInterval(timerRef.current);
+            if (Haptics) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+            handleSessionComplete(newTime);
+            return newTime;
+          }
+          return newTime;
         });
       }, 1000);
     } else {
@@ -99,7 +160,110 @@ export default function PlayerScreen({ route, navigation }) {
     }
     
     return () => clearInterval(timerRef.current);
-  }, [isPlaying]);
+  }, [isPlaying, preparationPhase, intervalEnabled, intervalMinutes, totalDuration]);
+
+  // Фоновый звук
+  useEffect(() => {
+    if (backgroundSound !== 'none' && isPlaying && !preparationPhase) {
+      loadBackgroundSound();
+    } else {
+      stopBackgroundSound();
+    }
+    
+    return () => {
+      stopBackgroundSound();
+    };
+  }, [backgroundSound, isPlaying, preparationPhase]);
+
+  const loadBackgroundSound = async () => {
+    try {
+      // В реальном приложении здесь будут реальные файлы звуков
+      // Пока используем тишину, но структура готова
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+      });
+      
+      // Для демо просто создаём пустой звук
+      // В продакшене: const { sound } = await Audio.Sound.createAsync(
+      //   require(`../assets/sounds/${backgroundSound}.mp3`),
+      //   { isLooping: true, volume: 0.3 }
+      // );
+      // backgroundSoundRef.current = sound;
+      // await sound.playAsync();
+    } catch (error) {
+      console.log('Error loading background sound:', error);
+    }
+  };
+
+  const stopBackgroundSound = async () => {
+    if (backgroundSoundRef.current) {
+      try {
+        await backgroundSoundRef.current.stopAsync();
+        await backgroundSoundRef.current.unloadAsync();
+        backgroundSoundRef.current = null;
+      } catch (error) {
+        console.log('Error stopping background sound:', error);
+      }
+    }
+  };
+
+  // Показать достижение
+  useEffect(() => {
+    if (newAchievements && newAchievements.length > 0) {
+      const achievement = newAchievements[0];
+      Alert.alert(
+        '🎉 Новое достижение!',
+        `${achievement.title}\n${achievement.description}`,
+        [{ text: 'Отлично!', onPress: clearNewAchievements }]
+      );
+    }
+  }, [newAchievements]);
+
+  // Сохранение сессии
+  const handleSessionComplete = async (duration) => {
+    if (sessionSaved.current) return;
+    sessionSaved.current = true;
+    
+    try {
+      const session = await saveSession({
+        practiceId: practice.id,
+        practiceTitle: practice.title,
+        duration: duration,
+        completedSteps: currentStep + 1,
+        totalSteps: practice.steps.length,
+      });
+      
+      // Предлагаем записать в дневник через 2 секунды
+      setTimeout(() => {
+        Alert.alert(
+          '🎉 Практика завершена!',
+          'Хотите записать свои ощущения в дневник?',
+          [
+            { text: 'Пропустить', style: 'cancel' },
+            { 
+              text: 'Записать', 
+              onPress: () => navigation.navigate('Journal', {
+                sessionId: session.id,
+                practiceTitle: practice.title,
+              })
+            },
+          ]
+        );
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
+  };
+
+  // Сохранение при ручном завершении (кнопка назад)
+  const handleClose = async () => {
+    if (elapsedTime > 60 && !sessionSaved.current) {
+      // Сохраняем если прошло больше минуты
+      await handleSessionComplete(elapsedTime);
+    }
+    navigation.goBack();
+  };
 
   const togglePlay = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -140,7 +304,7 @@ export default function PlayerScreen({ route, navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
         <TouchableOpacity 
           style={styles.closeButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleClose}
         >
           <Ionicons name="chevron-down" size={28} color={COLORS.textPrimary} />
         </TouchableOpacity>
@@ -155,71 +319,99 @@ export default function PlayerScreen({ route, navigation }) {
 
       {/* Visualization */}
       <View style={styles.visualContainer}>
-        {/* Breathing circles */}
-        <Animated.View 
-          style={[
-            styles.breathCircle,
-            styles.breathCircle3,
-            { 
-              transform: [{ scale: breathScale }],
-              opacity: breathOpacity,
-              borderColor: practice.color,
-            }
-          ]}
-        />
-        <Animated.View 
-          style={[
-            styles.breathCircle,
-            styles.breathCircle2,
-            { 
-              transform: [{ scale: breathScale }],
-              opacity: breathOpacity,
-              borderColor: practice.color,
-            }
-          ]}
-        />
-        <Animated.View 
-          style={[
-            styles.breathCircle,
-            styles.breathCircle1,
-            { 
-              transform: [{ scale: breathScale }],
-              opacity: breathOpacity,
-              borderColor: practice.color,
-            }
-          ]}
-        />
-        
-        {/* Center icon */}
-        <View style={[styles.centerIcon, { backgroundColor: practice.colorDim }]}>
-          <Text style={{ fontSize: 60 }}>{practice.icon}</Text>
-        </View>
-        
-        {/* Breath instruction */}
-        {isPlaying && (
-          <Animated.Text 
-            style={[
-              styles.breathInstruction,
-              { opacity: breathText }
-            ]}
-          >
-            Вдох
-          </Animated.Text>
+        {/* Preparation Phase */}
+        {preparationPhase && (
+          <View style={styles.preparationContainer}>
+            <Text style={styles.preparationText}>Приготовьтесь</Text>
+            <Text style={styles.preparationCountdown}>{preparationCountdown}</Text>
+            <Text style={styles.preparationHint}>Сделайте глубокий вдох</Text>
+          </View>
         )}
-        {isPlaying && (
-          <Animated.Text 
-            style={[
-              styles.breathInstruction,
-              { 
-                opacity: breathAnim.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [1, 0, 1],
-                })
-              }
-            ]}
-          >
-            Выдох
-          </Animated.Text>
+
+        {/* Main Visualization */}
+        {!preparationPhase && (
+          <>
+            {/* Breathing circles */}
+            <Animated.View 
+              style={[
+                styles.breathCircle,
+                styles.breathCircle3,
+                { 
+                  transform: [{ scale: breathScale }],
+                  opacity: breathOpacity,
+                  borderColor: practice.color,
+                }
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.breathCircle,
+                styles.breathCircle2,
+                { 
+                  transform: [{ scale: breathScale }],
+                  opacity: breathOpacity,
+                  borderColor: practice.color,
+                }
+              ]}
+            />
+            <Animated.View 
+              style={[
+                styles.breathCircle,
+                styles.breathCircle1,
+                { 
+                  transform: [{ scale: breathScale }],
+                  opacity: breathOpacity,
+                  borderColor: practice.color,
+                }
+              ]}
+            />
+            
+            {/* Center icon */}
+            <View style={[styles.centerIcon, { backgroundColor: practice.colorDim }]}>
+              <Text style={{ fontSize: 60 }}>{practice.icon}</Text>
+            </View>
+            
+            {/* Background sound indicator */}
+            {backgroundSound !== 'none' && (
+              <View style={styles.soundIndicator}>
+                <Ionicons name="musical-notes" size={16} color={COLORS.textMuted} />
+                <Text style={styles.soundIndicatorText}>
+                  {backgroundSound === 'rain' ? '🌧️' :
+                   backgroundSound === 'ocean' ? '🌊' :
+                   backgroundSound === 'forest' ? '🌲' :
+                   backgroundSound === 'fire' ? '🔥' :
+                   backgroundSound === 'wind' ? '💨' : ''}
+                </Text>
+              </View>
+            )}
+            
+            {/* Breath instruction */}
+            {isPlaying && (
+              <Animated.Text 
+                style={[
+                  styles.breathInstruction,
+                  { opacity: breathText }
+                ]}
+              >
+                Вдох
+              </Animated.Text>
+            )}
+            {isPlaying && (
+              <Animated.Text 
+                style={[
+                  styles.breathInstruction,
+                  { 
+                    opacity: breathAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [1, 0, 1],
+                    })
+                  }
+                ]}
+              >
+                Выдох
+              </Animated.Text>
+            )}
+          </>
         )}
       </View>
 
@@ -376,6 +568,41 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '500',
     color: COLORS.textSecondary,
+  },
+  preparationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  preparationText: {
+    fontSize: 18,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.lg,
+  },
+  preparationCountdown: {
+    fontSize: 120,
+    fontWeight: '700',
+    color: COLORS.gold,
+    lineHeight: 140,
+  },
+  preparationHint: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: SPACING.lg,
+  },
+  soundIndicator: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.bgCard + 'CC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.round,
+  },
+  soundIndicatorText: {
+    fontSize: 14,
   },
   stepContainer: {
     paddingHorizontal: SPACING.lg,

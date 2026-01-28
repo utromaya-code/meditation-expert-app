@@ -13,11 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { PRACTICES, LEVELS } from '../data/practices';
+import { useApp } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { currentStreak, totalSessions, hasPracticedToday } = useApp();
 
   return (
     <ScrollView 
@@ -55,7 +57,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.heroSubtitle}>Осознанное дыхание • 10 мин</Text>
             <TouchableOpacity 
               style={styles.heroButton}
-              onPress={() => navigation.navigate('Player', { practice: PRACTICES[0] })}
+              onPress={() => navigation.navigate('MeditationSetup', { practice: PRACTICES[0] })}
             >
               <Ionicons name="play" size={20} color={COLORS.bgPrimary} />
               <Text style={styles.heroButtonText}>Начать</Text>
@@ -68,20 +70,24 @@ export default function HomeScreen({ navigation }) {
       </TouchableOpacity>
 
       {/* Quick Stats */}
-      <View style={styles.statsRow}>
+      <TouchableOpacity 
+        style={styles.statsRow}
+        onPress={() => navigation.navigate('Statistics')}
+        activeOpacity={0.8}
+      >
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>6</Text>
-          <Text style={styles.statLabel}>Уровней</Text>
+          <Text style={styles.statNumber}>🔥 {currentStreak}</Text>
+          <Text style={styles.statLabel}>Стрик</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>4</Text>
-          <Text style={styles.statLabel}>Практики</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{totalSessions}</Text>
           <Text style={styles.statLabel}>Сессий</Text>
         </View>
-      </View>
+        <View style={[styles.statCard, hasPracticedToday && styles.statCardActive]}>
+          <Text style={styles.statNumber}>{hasPracticedToday ? '✓' : '○'}</Text>
+          <Text style={styles.statLabel}>Сегодня</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* Practices Section */}
       <View style={styles.section}>
@@ -272,6 +278,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.borderCard,
+  },
+  statCardActive: {
+    backgroundColor: COLORS.goldDim,
+    borderColor: COLORS.gold + '30',
   },
   statNumber: {
     fontSize: 28,

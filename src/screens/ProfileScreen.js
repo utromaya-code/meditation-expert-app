@@ -5,34 +5,59 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useApp } from '../context/AppContext';
 
 export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const [reminders, setReminders] = React.useState(true);
-  const [sounds, setSounds] = React.useState(true);
+  const { 
+    totalSessions, 
+    totalMinutes, 
+    currentStreak, 
+    formatTotalTime 
+  } = useApp();
 
   const menuItems = [
     {
-      title: 'Настройки',
+      title: 'Практика',
       items: [
-        { icon: 'notifications-outline', label: 'Напоминания', toggle: true, value: reminders, onToggle: setReminders },
-        { icon: 'volume-high-outline', label: 'Звуки', toggle: true, value: sounds, onToggle: setSounds },
-        { icon: 'moon-outline', label: 'Тёмная тема', badge: 'Вкл' },
-        { icon: 'language-outline', label: 'Язык', badge: 'Русский' },
+        { 
+          icon: 'analytics-outline', 
+          label: 'Статистика', 
+          onPress: () => navigation.navigate('Statistics') 
+        },
+        { 
+          icon: 'trophy-outline', 
+          label: 'Достижения', 
+          onPress: () => navigation.navigate('Achievements') 
+        },
+        { 
+          icon: 'journal-outline', 
+          label: 'Дневник практики', 
+          onPress: () => navigation.navigate('JournalHistory') 
+        },
+        { 
+          icon: 'settings-outline', 
+          label: 'Настройки', 
+          onPress: () => navigation.navigate('Settings') 
+        },
       ],
     },
     {
       title: 'Аккаунт',
       items: [
-        { icon: 'diamond-outline', label: 'Подписка', badge: 'Free', badgeColor: COLORS.textMuted, onPress: () => navigation.navigate('Subscription') },
+        { 
+          icon: 'diamond-outline', 
+          label: 'Подписка', 
+          badge: 'Free', 
+          badgeColor: COLORS.textMuted, 
+          onPress: () => navigation.navigate('Subscription') 
+        },
         { icon: 'cloud-download-outline', label: 'Скачанные практики' },
-        { icon: 'analytics-outline', label: 'Статистика' },
       ],
     },
     {
@@ -71,22 +96,26 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       {/* Stats */}
-      <View style={styles.statsRow}>
+      <TouchableOpacity 
+        style={styles.statsRow}
+        onPress={() => navigation.navigate('Statistics')}
+        activeOpacity={0.8}
+      >
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statValue}>{totalSessions}</Text>
           <Text style={styles.statLabel}>Сессий</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Минут</Text>
+          <Text style={styles.statValue}>{formatTotalTime()}</Text>
+          <Text style={styles.statLabel}>Всего</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Дней подряд</Text>
+          <Text style={styles.statValue}>🔥 {currentStreak}</Text>
+          <Text style={styles.statLabel}>Стрик</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Premium Banner */}
       <TouchableOpacity 
@@ -123,20 +152,12 @@ export default function ProfileScreen({ navigation }) {
                   itemIndex < section.items.length - 1 && styles.menuItemBorder
                 ]}
                 onPress={item.onPress}
-                disabled={item.toggle}
               >
                 <View style={styles.menuItemLeft}>
                   <Ionicons name={item.icon} size={22} color={COLORS.textSecondary} />
                   <Text style={styles.menuItemLabel}>{item.label}</Text>
                 </View>
-                {item.toggle ? (
-                  <Switch
-                    value={item.value}
-                    onValueChange={item.onToggle}
-                    trackColor={{ false: COLORS.bgSecondary, true: COLORS.goldDim }}
-                    thumbColor={item.value ? COLORS.gold : COLORS.textMuted}
-                  />
-                ) : item.badge ? (
+                {item.badge ? (
                   <View style={styles.menuItemRight}>
                     <Text style={[styles.menuItemBadge, item.badgeColor && { color: item.badgeColor }]}>
                       {item.badge}

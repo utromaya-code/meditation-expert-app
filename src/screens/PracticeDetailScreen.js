@@ -140,7 +140,7 @@ export default function PracticeDetailScreen({ route, navigation }) {
             if (practice.isPremium) {
               navigation.navigate('Subscription');
             } else {
-              navigation.navigate('Player', { practice });
+              navigation.navigate('MeditationSetup', { practice });
             }
           }}
         >
