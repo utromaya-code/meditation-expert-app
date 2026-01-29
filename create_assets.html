@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Создание иконки и скриншотов</title>
+    <style>
+        body {
+            background: #0a0a0f;
+            color: #d4af37;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { color: #d4af37; }
+        .section {
+            background: #1a1a2e;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        canvas {
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            background: white;
+        }
+        button {
+            background: #d4af37;
+            color: #0a0a0f;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #f4d03f;
+        }
+        .instructions {
+            background: #2a2a3e;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Создание материалов для RuStore</h1>
+        
+        <div class="section">
+            <h2>1. Иконка приложения (512x512px)</h2>
+            <canvas id="iconCanvas" width="512" height="512"></canvas>
+            <br><br>
+            <button onclick="createIcon()">Создать иконку</button>
+            <button onclick="downloadIcon()">Скачать иконку</button>
+        </div>
+
+        <div class="section">
+            <h2>2. Скриншоты приложения</h2>
+            <div class="instructions">
+                <p><strong>Инструкция:</strong></p>
+                <ol>
+                    <li>Откройте приложение в Expo Go на телефоне</li>
+                    <li>Сделайте скриншоты следующих экранов:</li>
+                    <ul>
+                        <li>Главный экран (HomeScreen)</li>
+                        <li>Список практик (PracticesScreen)</li>
+                        <li>Детали практики (PracticeDetailScreen)</li>
+                        <li>Плеер медитации (PlayerScreen)</li>
+                        <li>Статистика (StatisticsScreen)</li>
+                        <li>Профиль (ProfileScreen)</li>
+                    </ul>
+                    <li>Минимум нужно 2 скриншота, максимум 8</li>
+                    <li>Скриншоты должны быть в формате PNG или JPG</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Фон - темный с градиентом
+            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#0a0a0f');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Золотой круг
+            ctx.fillStyle = '#d4af37';
+            ctx.beginPath();
+            ctx.arc(256, 256, 200, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Внутренний круг
+            ctx.fillStyle = '#0a0a0f';
+            ctx.beginPath();
+            ctx.arc(256, 256, 160, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Символ медитации (лотос/мандала)
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 8;
+            
+            // Внешний круг
+            ctx.beginPath();
+            ctx.arc(256, 256, 140, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Лепестки лотоса
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 / 8) * i;
+                const x1 = 256 + Math.cos(angle) * 100;
+                const y1 = 256 + Math.sin(angle) * 100;
+                const x2 = 256 + Math.cos(angle) * 120;
+                const y2 = 256 + Math.sin(angle) * 120;
+                
+                ctx.beginPath();
+                ctx.moveTo(256, 256);
+                ctx.lineTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Центральная точка
+            ctx.fillStyle = '#d4af37';
+            ctx.beginPath();
+            ctx.arc(256, 256, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function downloadIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const link = document.createElement('a');
+            link.download = 'app-icon-512x512.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Автоматически создаем иконку при загрузке
+        window.onload = function() {
+            createIcon();
+        };
+    </script>
+</body>
+</html>

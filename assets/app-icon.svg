@@ -1,0 +1,35 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Фон -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  
+  <!-- Золотой круг -->
+  <circle cx="256" cy="256" r="200" fill="#d4af37"/>
+  
+  <!-- Внутренний темный круг -->
+  <circle cx="256" cy="256" r="160" fill="#0a0a0f"/>
+  
+  <!-- Внешний круг мандалы -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#d4af37" stroke-width="8"/>
+  
+  <!-- Лепестки лотоса (8 штук) -->
+  <g stroke="#d4af37" stroke-width="8" fill="none">
+    <path d="M 256 256 L 356 256 L 376 256"/>
+    <path d="M 256 256 L 356 156 L 376 136"/>
+    <path d="M 256 256 L 256 156 L 256 136"/>
+    <path d="M 256 256 L 156 156 L 136 136"/>
+    <path d="M 256 256 L 156 256 L 136 256"/>
+    <path d="M 256 256 L 156 356 L 136 376"/>
+    <path d="M 256 256 L 256 356 L 256 376"/>
+    <path d="M 256 256 L 356 356 L 376 376"/>
+  </g>
+  
+  <!-- Центральная точка -->
+  <circle cx="256" cy="256" r="20" fill="#d4af37"/>
+</svg>
